@@ -149,7 +149,7 @@ ax.set(xlabel='time (sec)',ylabel='$\Theta$ (deg)',title='complete dynamic of $\
 axes = plt.gca()
 axes.set_xlim([0,10])
 #axes.set_ylim([-1,10])
-
+cacca=1
 #fig.savefig("Plot theta as a function of time_WITH IMPACT DISSIPATION_igor_0.5.png", dpi = 500, bbox_inches='tight')
 #%%
 
