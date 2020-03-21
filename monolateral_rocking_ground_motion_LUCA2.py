@@ -135,15 +135,28 @@ axes.set_xlim([0,4])
 
 #plot su diversi axes 
 #con questo plot si vede meglio come le accelerezioni positive producono rotazioni positive
+
+def align_yaxis(ax1, v1, ax2, v2):
+    """adjust ax2 ylimit so that v2 in ax2 is aligned to v1 in ax1"""
+    _, y1 = ax1.transData.transform((0, v1))
+    _, y2 = ax2.transData.transform((0, v2))
+    inv = ax2.transData.inverted()
+    _, dy = inv.transform((0, 0)) - inv.transform((0, y1-y2))
+    miny, maxy = ax2.get_ylim()
+    ax2.set_ylim(miny+dy, maxy+dy)
+
 fig, ax1 = plt.subplots()
 
 ax1.set_xlabel('time (s)')
 ax1.set_ylabel('rotations $\Theta$ (deg)', color='red')
 ax1.plot(t_total,rotation_total,'r-',linewidth=3)
 ax1.tick_params(axis='y', labelcolor='red')
+ax1.set_ylim([-1,1.5])
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 ax2.set_ylabel('seismic acceleration', color='blue')  # we already handled the x-label with ax1
 ax2.plot(t_total,interpol(t_total))
-ax2.plot(t_total,[0]*len(t_total), 'b')
+ax2.plot(t_total,[0]*len(t_total), 'b--', linewidth = 0.6)
 ax2.tick_params(axis='y', labelcolor='blue')
+
+align_yaxis(ax1, 0, ax2, 0)
