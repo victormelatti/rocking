@@ -32,7 +32,7 @@ s=wb.sheet_by_name('acceleration strong')
 s.nrows
 #time=np.linspace(0., tStop, int(tStop/tInc)+1)
 #time=time[6000:10000]
-acc=[s.cell_value(i,4)*0.01 for i in range(s.nrows)]
+acc=[s.cell_value(i,4)*-0.01 for i in range(s.nrows)]
 
 #extrapolate creates values after the last one
 interpol=interpolate.interp1d(t,acc,fill_value="extrapolate")
@@ -58,7 +58,7 @@ psoln = None
 activation=0
 
 #consider only positive rotations
-numero_di_volte=20
+numero_di_volte=60
 activation_acceleration=[]
 y_curr_list=[]
 
@@ -132,3 +132,18 @@ axes = plt.gca()
 axes.set_xlim([0,4])
 #axes.set_ylim([-1,10])
 #fig.savefig("Plot theta as a function of time_WITH IMPACT DISSIPATION_igor_0.5.png", dpi = 500, bbox_inches='tight')
+
+#plot su diversi axes 
+#con questo plot si vede meglio come le accelerezioni positive producono rotazioni positive
+fig, ax1 = plt.subplots()
+
+ax1.set_xlabel('time (s)')
+ax1.set_ylabel('rotations $\Theta$ (deg)', color='red')
+ax1.plot(t_total,rotation_total,'r-',linewidth=3)
+ax1.tick_params(axis='y', labelcolor='red')
+
+ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+ax2.set_ylabel('seismic acceleration', color='blue')  # we already handled the x-label with ax1
+ax2.plot(t_total,interpol(t_total))
+ax2.plot(t_total,[0]*len(t_total), 'b')
+ax2.tick_params(axis='y', labelcolor='blue')
