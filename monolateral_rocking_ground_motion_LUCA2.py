@@ -76,67 +76,30 @@ def get_number_of_consecutive_negative_thetas(derivative_solution):
     return negative_theta_values
 
 
-
-b = 0.3  # mezza base
-h = 2.4  # mezza altezza
-H = 2 * h
-zeta = h / b
-
-# TODO: we consider only two dimensional wall
-vol = 2 * b * 2 * h
-density = 203
-g = 9.81
-m = vol * density
-R = np.sqrt((b) ** 2 + (h) ** 2)
-I = (4 / 3) * m * R ** 2
-p_quadro = m * g * R / I
-p = np.sqrt(p_quadro)
-alpha = np.arctan(b / h)
-
-
-# Make time array for solution
-tStop = 8.000
-tInc = 0.005
-t = np.linspace(0.0, tStop, int(tStop / tInc + 1))
-
-
-
-# Initial values
-theta0 = 0 * np.pi / 180  # initial angular displacement RADIANTI
-omega0 = 0.0  # initial angular velocity
-# params = [p_quadro, alpha, interpol, g]
-y_curr = [theta0, omega0]
-
-e_1s = 1.05 * (1 - 2 * m * R ** 2 / I * np.sin(alpha) ** 2) ** 2 * (1 - 2 * m * R ** 2 / I * np.cos(alpha) ** 2)
-r = e_1s
-
-
-acc = read_accelerations("acceleration_laquila.xlsx")
-
-interpol = interpolate_time_accelerations(t, acc)
-
-numero_di_volte = 20
-ts = [t]
-
-
 def find_rotations(time_array, accelerations, calculation_accuracy=0.7):
     """
     Functions to calculate the rotations based on the time and the accelerations.
 
+    :param time_array:
+    :param accelerations:
+    :param calculation_accuracy: gives the frequency of how many times the odeint function
+        # should be called. If the accuracy is low, all negative theta values are skipped, and the computation is much faster.
+        # if it is high, no negative theta values is skipped and the odeint function is called for every interval in time.
     :return:
     """
     rotations = []
     velocities = []
+
+    time_list_of_lists = [t]
+
     psoln = None
 
     activation = 0
     current_index = 0
 
-    # the index of the time array to stop
-
     TEST_STOP = 1600
 
-    while current_index < len(t) and current_index < TEST_STOP:
+    while current_index < len(time_array) and current_index < TEST_STOP:
         velocity_after_impact = 0
 
         rotations_at_step = []
@@ -146,9 +109,6 @@ def find_rotations(time_array, accelerations, calculation_accuracy=0.7):
         if psoln is None:
             velocity_after_impact = omega0
         else:
-
-            # print(len(psoln[0]))
-
             # check the second rotation. If it is greater than zero, we consider all the
             # positive rotations found by the calculation of the derivatives
             if psoln[0][1, 0] > 0:
@@ -179,78 +139,120 @@ def find_rotations(time_array, accelerations, calculation_accuracy=0.7):
         velocities.append(velocities_at_step)
 
         y_curr = [0, velocity_after_impact]
-        # ts.append([])
-
-        # "calculation accuracy" gives frequency of how many times the odeint function
-        # should be called. If the accuracy is low, all negative theta values are skipped,
-        # if it is high, no negative theta values is skipped and the odeint function is called
-        # for every interval in time.
-        # For low values of "calculation accuracy" the function is faster
 
         negative_theta_values = get_number_of_consecutive_negative_thetas(psoln)
 
         # we skip all the negative thetas
         if activation == 0:
-            current_index += int(negative_theta_values * (1-calculation_accuracy)) + 1
+            current_index += int(negative_theta_values * (1 - calculation_accuracy)) + 1
 
         print(activation, current_index)
 
-        next_time_array = ts[0][current_index:]
-        ts.append(next_time_array)
+        next_time_array = time_array[current_index:]
+        time_list_of_lists.append(next_time_array)
 
-        # for interpolation we need at least two entries
-        if len(next_time_array) < 2:
-            return rotations
+        # for interpolation we need at least two entries.
+        if current_index >= len(time_array) - 1:
+            return rotations, time_list_of_lists
         else:
-            interpol = interpolate_time_accelerations(next_time_array, acc[current_index:])
+            interpol = interpolate_time_accelerations(next_time_array, accelerations[current_index:])
             psoln = odeint(calculate_derivatives, y_curr, next_time_array, args=(p_quadro, alpha, interpol, g), full_output=True)
 
-    return rotations
+    return rotations, time_list_of_lists
 
 
-rotations = find_rotations(ts, acc)
+def plot_rotations(time_list_of_lists, rotations_list_of_lists):
+    """
+    Plot the rotations.
+
+    :param time_list_of_lists: list of list of interval of times
+    :param rotations: list of list of rotations
+    :return:
+    """
+
+    # assert len(time_list_of_lists) == len(rotations_list_of_lists)
+
+    # plot all together
+    t_total = []
+    rotation_total = []
+    for ndv in range(len(rotations_list_of_lists)):
+        t_total += list(time_list_of_lists[ndv][: len(rotations_list_of_lists[ndv])])
+        rotation_total += rotations_list_of_lists[ndv]
+
+    initial_part_time = list(np.linspace(0.0, t_total[0], int(t_total[0] / tInc + 1)))
+    initial_part_rotations = [0] * len(initial_part_time)
+
+    t_total = initial_part_time + t_total
+    rotation_total = initial_part_rotations + rotation_total
+    interpol = interpolate.interp1d(t, acc)
+
+    fig, ax = plt.subplots()
+    axes = plt.gca()
+    ax.grid()
+    ax.plot(t_total, rotation_total, "r-", linewidth=3)
+    ax.plot(t_total, interpol(t_total))
+    ax.set(xlabel="time (sec)", ylabel="$\Theta$ (deg)", title="complete dynamic of $\Theta$")
+    axes = plt.gca()
+    axes.set_xlim([0, 4])
+    # axes.set_ylim([-1,10])
+    # fig.savefig("Plot theta as a function of time_WITH IMPACT DISSIPATION_igor_0.5.png", dpi = 500, bbox_inches='tight')
+
+    # plot su diversi axes
+    # con questo plot si vede meglio come le accelerezioni positive producono rotazioni positive
+    fig, ax1 = plt.subplots()
+
+    ax1.set_xlabel("time (s)")
+    ax1.set_ylabel("rotations $\Theta$ (deg)", color="red")
+    ax1.plot(t_total, rotation_total, "r-", linewidth=3)
+    ax1.tick_params(axis="y", labelcolor="red")
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    ax2.set_ylabel("seismic acceleration", color="blue")  # we already handled the x-label with ax1
+    ax2.plot(t_total, interpol(t_total))
+    ax2.plot(t_total, [0] * len(t_total), "b")
+    ax2.tick_params(axis="y", labelcolor="blue")
+
+    plt.show()
 
 
-# plot all together
-t_total = []
-rotation_total = []
-for ndv in range(len(rotations)):
-    t_total += list(ts[ndv][: len(rotations[ndv])])
-    rotation_total += rotations[ndv]
+b = 0.3  # mezza base
+h = 2.4  # mezza altezza
+H = 2 * h
+zeta = h / b
+
+# TODO: we consider only two dimensional wall
+vol = 2 * b * 2 * h
+density = 203
+g = 9.81
+m = vol * density
+R = np.sqrt((b) ** 2 + (h) ** 2)
+I = (4 / 3) * m * R ** 2
+p_quadro = m * g * R / I
+p = np.sqrt(p_quadro)
+alpha = np.arctan(b / h)
 
 
-initial_part_time = list(np.linspace(0.0, t_total[0], int(t_total[0] / tInc + 1)))
-initial_part_rotations = [0] * len(initial_part_time)
-
-t_total = initial_part_time + t_total
-rotation_total = initial_part_rotations + rotation_total
-interpol = interpolate.interp1d(t, acc)
-
-fig, ax = plt.subplots()
-axes = plt.gca()
-ax.grid()
-ax.plot(t_total, rotation_total, "r-", linewidth=3)
-ax.plot(t_total, interpol(t_total))
-ax.set(xlabel="time (sec)", ylabel="$\Theta$ (deg)", title="complete dynamic of $\Theta$")
-axes = plt.gca()
-axes.set_xlim([0, 4])
-# axes.set_ylim([-1,10])
-# fig.savefig("Plot theta as a function of time_WITH IMPACT DISSIPATION_igor_0.5.png", dpi = 500, bbox_inches='tight')
-
-# plot su diversi axes
-# con questo plot si vede meglio come le accelerezioni positive producono rotazioni positive
-fig, ax1 = plt.subplots()
-
-ax1.set_xlabel("time (s)")
-ax1.set_ylabel("rotations $\Theta$ (deg)", color="red")
-ax1.plot(t_total, rotation_total, "r-", linewidth=3)
-ax1.tick_params(axis="y", labelcolor="red")
-
-ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-ax2.set_ylabel("seismic acceleration", color="blue")  # we already handled the x-label with ax1
-ax2.plot(t_total, interpol(t_total))
-ax2.plot(t_total, [0] * len(t_total), "b")
-ax2.tick_params(axis="y", labelcolor="blue")
+# Make time array for solution
+tStop = 8.000
+tInc = 0.005
+t = np.linspace(0.0, tStop, int(tStop / tInc + 1))
 
 
-plt.show()
+# Initial values
+theta0 = 0 * np.pi / 180  # initial angular displacement RADIANTI
+omega0 = 0.0  # initial angular velocity
+y_curr = [theta0, omega0]
+
+e_1s = 1.05 * (1 - 2 * m * R ** 2 / I * np.sin(alpha) ** 2) ** 2 * (1 - 2 * m * R ** 2 / I * np.cos(alpha) ** 2)
+r = e_1s
+
+
+# Here everything starts
+
+acc = read_accelerations("acceleration_laquila.xlsx")
+
+interpol = interpolate_time_accelerations(t, acc)
+
+rotations, ts = find_rotations(t, acc)
+
+plot_rotations(ts, rotations)
