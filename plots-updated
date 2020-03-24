@@ -212,7 +212,7 @@ def plot_rotations(time_list_of_lists, rotations_list_of_lists):
     ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
     ax2.set_ylabel("Seismic acceleration [m/$s^2$]", color="blue")  # we already handled the x-label with ax1
     ax2.plot(t_total, interpol(t_total), linewidth = 0.6)
-    ax2.plot(t_total, [acceleration_of_start_rocking] * len(t_total), "k--", linewidth = 1.5)
+    ax2.plot(t_total, [acceleration_of_start_rocking] * len(t_total), "b--", linewidth = 1.5)
     ax2.plot(t_total, [0] * len(t_total), "b", linewidth = 0.6)
     ax2.tick_params(axis="y", labelcolor="blue")
     ax2.set_ylim([interpol(t_total).min(),interpol(t_total).max()+1])
@@ -229,7 +229,7 @@ def plot_rotations(time_list_of_lists, rotations_list_of_lists):
     ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
     ax2.set_ylabel("Seismic acceleration [m/$s^2$]", color="blue")  # we already handled the x-label with ax1
     plt2=ax2.plot(t_total, interpol(t_total), linewidth = 0.6, label = 'Accelerations')
-    plt3=ax2.plot(t_total, [acceleration_of_start_rocking] * len(t_total), "k--", linewidth = 1.5, label = 'Acceleration of activation')
+    plt3=ax2.plot(t_total, [acceleration_of_start_rocking] * len(t_total), "b--", linewidth = 1.5, label = 'Acceleration of activation')
     ax2.plot(t_total, [0] * len(t_total), "b", linewidth = 0.6)
     ax2.tick_params(axis="y", labelcolor="blue")
     ax2.set_ylim([interpol(t_total).min(),interpol(t_total).max()+1])
