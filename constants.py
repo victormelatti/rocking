@@ -1,14 +1,29 @@
-import numpy as np
-
+#geometrical parameters
 HALF_BASE = 0.3      # meters
+
 HALF_HEIGHT = 2.4    # meters
-HEIGHT = 2 * HALF_HEIGHT
-BASE = 2 * HALF_BASE
 
-VOLUME = BASE * HEIGHT
-DENSITY = 203
-MASS = VOLUME * DENSITY
+DEPTH = 1.0   # meters
 
-R = np.sqrt(HALF_BASE ** 2 + HALF_HEIGHT ** 2)
-I = (4 / 3) * MASS * R ** 2
-alpha = np.arctan(HALF_BASE / HALF_HEIGHT)
+DENSITY = 203.0    # mass/vol
+
+INTERFACE_STIFFNESS= 6e6  # Pa
+
+COMPRESSIVE_STRENGTH = 32739  # Pa
+
+T_STOP = 8.000   #sec
+
+T_INC = 0.005    #sec
+
+GRAVITY = 9.81    #m/s^2
+
+
+
+
+
+
+
+
+
+
+
