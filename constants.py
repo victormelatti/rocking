@@ -10,7 +10,7 @@ DEPTH = 1.0   # meters
 #physical parameters of the wall:
 DENSITY = 203.0    # mass/vol
 
-INTERFACE_STIFFNESS= 6e6  # Pa
+INTERFACE_STIFFNESS = 6e6  # Pa
 
 COMPRESSIVE_STRENGTH = 32739  # Pa
 

@@ -11,49 +11,63 @@ def compute_base_height(half_base, half_height):
     height = half_height * 2
     return base, height
 
+
 def compute_volume(base, height):
     volume = base * height
     return volume
 
+
 def compute_mass(volume, density):
     mass = volume * density
     return mass
-    
-def compute_radius (half_base, half_height):
-    radius = np.sqrt(half_base ** 2 + half_height ** 2)    # meters
+
+
+def compute_radius(half_base, half_height):
+    radius = np.sqrt(half_base ** 2 + half_height ** 2)  # meters
     return radius
 
-def compute_polar_moment_inertia(mass,radius):
+
+def compute_polar_moment_inertia(mass, radius):
     polar_moment_inertia = (4 / 3) * mass * radius ** 2
     return polar_moment_inertia
+
 
 def compute_alpha(half_base, half_height):
     alpha = np.arctan(half_base / half_height)
     return alpha
 
+
 def compute_zeta(half_base, half_height):
     zeta = half_height / half_base
     return zeta
+
 
 def compute_acceleration_of_start_rocking(alpha, gravity):
     acceleration_of_start_rocking = np.tan(alpha) * gravity  # static acceleration of start rocking
     return acceleration_of_start_rocking
 
-def compute_velocity_reduction_coefficient (mass, radius, alpha, I):
-    velocity_reduction_coefficient= 1.05 * (1 - 2 * mass * radius ** 2 / I * np.sin(alpha) ** 2) ** 2 * (1 - 2 * mass * radius ** 2 / I * np.cos(alpha) ** 2)
+
+def compute_velocity_reduction_coefficient(mass, radius, alpha, I):
+    velocity_reduction_coefficient = (
+        1.05 * (1 - 2 * mass * radius ** 2 / I * np.sin(alpha) ** 2) ** 2 * (1 - 2 * mass * radius ** 2 / I * np.cos(alpha) ** 2)
+    )
     return velocity_reduction_coefficient
+
 
 def compute_fully_compressed_theta(mass, gravity, interface_stiffness, base, depth):
     fully_compressed_theta = 2 * mass * gravity / (interface_stiffness * base ** 2 * depth)
     return fully_compressed_theta
 
+
 def compute_fully_cracked_theta(compressive_strength, depth, interface_stiffness, mass, gravity):
-    fully_cracked_theta = 0.5 * compressive_strength **2 * depth / (interface_stiffness * mass * gravity )
+    fully_cracked_theta = 0.5 * compressive_strength ** 2 * depth / (interface_stiffness * mass * gravity)
     return fully_cracked_theta
+
 
 def compute_time_array(t_stop, t_inc):
     time_array = np.linspace(0.0, t_stop, int(t_stop / t_inc + 1))
     return time_array
+
 
 def read_accelerations(filename, time_array):
     """
@@ -87,7 +101,9 @@ def interpolate_time_accelerations(time_array, accelerations):
     return time_acceleration_interpolation
 
 
-def calculate_rotation_point(rotation, theta_fully_compressed, theta_fully_cracked, base, interface_stiffness, compressive_strength, depth, gravity, mass):
+def calculate_rotation_point(
+    rotation, theta_fully_compressed, theta_fully_cracked, base, interface_stiffness, compressive_strength, depth, gravity, mass
+):
     """
     Function that computes u_theta given a rotation
 
@@ -97,13 +113,16 @@ def calculate_rotation_point(rotation, theta_fully_compressed, theta_fully_crack
 
     rotation_point = 0
     if rotation <= theta_fully_compressed:
-        rotation_point = base / 2 - (base ** 3 * interface_stiffness * depth * rotation / (12 *mass* gravity))
+        rotation_point = base / 2 - (base ** 3 * interface_stiffness * depth * rotation / (12 * mass * gravity))
 
     if theta_fully_compressed < rotation <= theta_fully_cracked:
         rotation_point = (1 / 3) * np.sqrt(2 * mass * gravity / (interface_stiffness * depth * rotation))
 
     if rotation > theta_fully_cracked:
-        rotation_point = 0.5 * (mass * gravity / (compressive_strength * depth) + (compressive_strength ** 3 * depth) / (12 * mass * gravity * interface_stiffness ** 2 * rotation ** 2))
+        rotation_point = 0.5 * (
+            mass * gravity / (compressive_strength * depth)
+            + (compressive_strength ** 3 * depth) / (12 * mass * gravity * interface_stiffness ** 2 * rotation ** 2)
+        )
 
     return rotation_point
 
@@ -118,11 +137,25 @@ def calculate_frequency_parameter(rotation_point, radius, mass, gravity, alpha):
     radius_theta = np.sqrt((radius * np.cos(alpha)) ** 2 + (radius * np.sin(alpha) - rotation_point) ** 2)
     polar_moment_inertia_theta = mass / 3 * radius_theta ** 2 + mass * radius_theta ** 2
     frequency_parameter = mass * gravity * radius / polar_moment_inertia_theta
-    
+
     return frequency_parameter
 
 
-def calculate_derivatives(y, time_array, radius, alpha, time_acceleration_interpolation, gravity, theta_fully_compressed, theta_fully_cracked, base, mass, interface_stiffness, compressive_strength, depth):
+def calculate_derivatives(
+    y,
+    time_array,
+    radius,
+    alpha,
+    time_acceleration_interpolation,
+    gravity,
+    theta_fully_compressed,
+    theta_fully_cracked,
+    base,
+    mass,
+    interface_stiffness,
+    compressive_strength,
+    depth,
+):
     """
     Function that scipy.odeint takes in input in order to calculate the
     rotation theta and the angular velocity omega.
@@ -137,13 +170,16 @@ def calculate_derivatives(y, time_array, radius, alpha, time_acceleration_interp
     """
     theta, omega = y
 
-    rotation_point = calculate_rotation_point(theta, theta_fully_compressed, theta_fully_cracked, base, interface_stiffness, compressive_strength, depth, gravity, mass)
-    
+    rotation_point = calculate_rotation_point(
+        theta, theta_fully_compressed, theta_fully_cracked, base, interface_stiffness, compressive_strength, depth, gravity, mass
+    )
+
     frequency_parameter = calculate_frequency_parameter(rotation_point, radius, mass, gravity, alpha)
 
     derivs = [
         omega,
-        -frequency_parameter * (np.sin(alpha - theta) - rotation_point / radius) + frequency_parameter * time_acceleration_interpolation(time_array) * np.cos(alpha - theta) / gravity,
+        -frequency_parameter * (np.sin(alpha - theta) - rotation_point / radius)
+        + frequency_parameter * time_acceleration_interpolation(time_array) * np.cos(alpha - theta) / gravity,
     ]
     return derivs
 
@@ -162,7 +198,25 @@ def get_number_of_consecutive_non_positive_thetas(derivative_solution):
     return negative_theta_values
 
 
-def find_rotations(time_array, accelerations, calculation_accuracy, theta_fully_compressed, theta_fully_cracked, base, interface_stiffness, compressive_strength, depth, gravity, mass, radius, alpha, theta0, omega0, velocity_reduction_coefficient):
+
+def find_rotations(
+    time_array,
+    accelerations,
+    calculation_accuracy,
+    theta_fully_compressed,
+    theta_fully_cracked,
+    base,
+    interface_stiffness,
+    compressive_strength,
+    depth,
+    gravity,
+    mass,
+    radius,
+    alpha,
+    theta0,
+    omega0,
+    velocity_reduction_coefficient,
+):
     """
     Functions to calculate the rotations based on the time and the accelerations.
     :param time_array:
@@ -173,62 +227,54 @@ def find_rotations(time_array, accelerations, calculation_accuracy, theta_fully_
     :return:
     """
     rotations = []
-    velocities = []
-    rotation_point = []
+    rotation_points = []
 
     time_list_of_lists = [time_array]
 
     psoln = None
-
-    activation = 0
     current_index = 0
 
     TEST_STOP = 1600
 
     while current_index < len(time_array) and current_index < TEST_STOP:
-        velocity_after_impact = 0
+
+        theta_after_impact = theta0 if psoln is None else 0
+        velocity_after_impact = omega0 if psoln is None else 0
+        activation = 0
 
         rotations_at_step = []
-        velocities_at_step = []
-        rotation_point_step = []
+        rotation_points_step = []
 
-        # the first time that we are here we consider velocity_impact_after == omega0
-        if psoln is None:
-            theta_after_impact = theta0
-            velocity_after_impact = omega0
-        else:
-            # check the second rotation. If it is greater than zero, we consider all the
-            # positive rotations found by the calculation of the derivatives
-            theta_after_impact = 0
-            if psoln[0][1, 0] > 0:
-                activation = 1
+        if psoln is not None and psoln[0][1, 0] > 0:
+            activation = 1
+            i = 0
 
-                # iterate over positive theta values and stop when a negative value is found
-                for i in range(len(psoln[0][:, 0])):
-                    if psoln[0][i, 0] >= 0:
-                        current_index += 1
+            # iterate over positive theta values and stop when a negative value is found
+            while i < len(psoln[0][:, 0]) and psoln[0][i, 0] >= 0:
+                current_index += 1
 
-                        rotations_at_step.append(psoln[0][i, 0] * 180 / np.pi)
-                        velocities_at_step.append(psoln[0][i, 1])
-                        velocity_urto_meno = velocities_at_step[-1]
+                rotation = psoln[0][i, 0] * 180 / np.pi
+                velocity = psoln[0][i, 1]
 
-                        # the velocity after the impact is the last velocity multiplied by a coefficient
-                        velocity_after_impact = velocity_reduction_coefficient * velocity_urto_meno
-                        rotation_point_i = calculate_rotation_point(psoln[0][i, 0], theta_fully_compressed, theta_fully_cracked, base, cs.INTERFACE_STIFFNESS, cs.COMPRESSIVE_STRENGTH, cs.DEPTH, cs.GRAVITY, mass)
-                        rotation_point_step.append(rotation_point_i)
+                rotations_at_step.append(rotation)
+                velocity_after_impact = velocity_reduction_coefficient * velocity
 
-                    else:
-                        break
-            else:
-                # check the new start index here
-                activation = 0
-                velocity_after_impact = 0
+                rotation_point_i = calculate_rotation_point(
+                    psoln[0][i, 0],
+                    theta_fully_compressed,
+                    theta_fully_cracked,
+                    base,
+                    cs.INTERFACE_STIFFNESS,
+                    cs.COMPRESSIVE_STRENGTH,
+                    cs.DEPTH,
+                    cs.GRAVITY,
+                    mass,
+                )
+                rotation_points_step.append(rotation_point_i)
+                i += 1
 
-        # rotations at_step is empty if it is the first iteration (psol is None) or
-        # the second rotation in the calculation of the derivatives is not positive
         rotations.append(rotations_at_step)
-        velocities.append(velocities_at_step)
-        rotation_point.append(rotation_point_step)
+        rotation_points.append(rotation_points_step)
 
         y_curr = [theta_after_impact, velocity_after_impact]
 
@@ -244,13 +290,31 @@ def find_rotations(time_array, accelerations, calculation_accuracy, theta_fully_
 
         # for interpolation we need at least two entries.
         if current_index >= len(time_array) - 1:
-            return rotations, time_list_of_lists, rotation_point
+            return rotations, time_list_of_lists, rotation_points
 
         else:
             interpol = interpolate_time_accelerations(next_time_array, accelerations[current_index:])
-            psoln = odeint(calculate_derivatives, y_curr, next_time_array, args=(radius, alpha, interpol, cs.GRAVITY, theta_fully_compressed, theta_fully_cracked, base, mass, cs.INTERFACE_STIFFNESS, cs.COMPRESSIVE_STRENGTH, cs.DEPTH), full_output=True)
+            psoln = odeint(
+                calculate_derivatives,
+                y_curr,
+                next_time_array,
+                args=(
+                    radius,
+                    alpha,
+                    interpol,
+                    cs.GRAVITY,
+                    theta_fully_compressed,
+                    theta_fully_cracked,
+                    base,
+                    mass,
+                    cs.INTERFACE_STIFFNESS,
+                    cs.COMPRESSIVE_STRENGTH,
+                    cs.DEPTH,
+                ),
+                full_output=True,
+            )
 
-    return rotations, time_list_of_lists, rotation_point
+    return rotations, time_list_of_lists, rotation_points
 
 
 def align_yaxis(ax1, v1, ax2, v2):
@@ -268,7 +332,16 @@ def line_chart(x, y, color, label_x, label_y):
     pass
 
 
-def plot_rotations(time_list_of_lists, rotations_list_of_lists, rotation_point_list_of_lists, accelerations, time_increment, half_base, time_array, acceleration_of_start_rocking):
+def plot_rotations(
+    time_list_of_lists,
+    rotations_list_of_lists,
+    rotation_point_list_of_lists,
+    accelerations,
+    time_increment,
+    half_base,
+    time_array,
+    acceleration_of_start_rocking,
+):
     """
     Plot the rotations.
 
